@@ -1,0 +1,2 @@
+# BeginnerProjects
+Small and easy projects I am doing to get more familiar with Python and Lua
