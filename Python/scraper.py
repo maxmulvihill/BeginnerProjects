@@ -10,10 +10,20 @@ import time
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("-h","--help", action="help", help="Enter an URL and it will be downloaded")
 parser.add_argument("url", help="URL to be inserted")
+tagcommands = parser.add_argument_group("Elements")
+tagcommands.add_argument("-a", "--link",action="store_true", help="Extracts all hyperlinks")
+tagcommands.add_argument("-p","--text",action="store_false", help="Extracts all paragraph text")
 parser.parse_args()
 url = sys.argv[1]
-if len(sys.argv) != 2:
-    raise Exception("Error: Specified length of arguments is not correct")
+firstarg = sys.argv[2]
+if firstarg == "-a" or firstarg == "--link":
+    firstarg = "a"
+elif firstarg == "-p" or firstarg == "--text":
+    firstarg = "p"
+
+
+if len(sys.argv) < 2:
+    raise Exception("Error: Not enough arguments presented")
 
 headers = {
 
@@ -21,21 +31,26 @@ headers = {
 
     }
 website = requests.get(url=url, headers=headers)
+website.raise_for_status()
 print("Response Received")
 
+website.encoding = "utf-8"
 
 SoupTest = BeautifulSoup(website.text, "html.parser")
 with open('test.html', 'w', encoding='utf-8') as testfile:
     testfile.write(SoupTest.prettify())
 with open("info.txt", 'w') as outputfile:
     with open("test.html", "r") as readfile:
-        with alive_bar(len(SoupTest.find_all('a')), title="Downloading") as bar:
-            for site in SoupTest.find_all('a'):
-                bar.text = f'-> getting link {str(site.get("href"))}, please wait'
-                outputfile.write((str(site.string) + " | " + (str(site.get("href"))) + '\n'))
+        with alive_bar(len(SoupTest.find_all(firstarg)), title="Downloading", bar="notes", spinner="fish") as bar:
+            for site in SoupTest.find_all(firstarg):
+                if firstarg == "p":
+                    bar.text = f'-> getting element {str(site.text)}, please wait'
+                    outputfile.write("\t" + (str(site.text) + '\n'))
+                elif firstarg == "a":
+                    if "http" in str(site.get("href")) or "https" in str(site.get("href")):
+                        bar.text = f'-> getting element {str(site.get("href"))}, please wait'
+                        outputfile.write((str(site.get("href")) + '\n'))
                 time.sleep(0.2)
                 bar()
     SoupTest.prettify()
-        
-
 print(url + " was downloaded")
